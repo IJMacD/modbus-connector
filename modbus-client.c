@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <time.h>
 
 #include <arpa/inet.h>
 
@@ -204,6 +205,32 @@ void set_values (int sockfd, char *type, int start_address, uint16_t *values, in
     }
 }
 
+void set_time (int sockfd) {
+    printf("Setting time to ");
+
+    time_t now;
+    time(&now);
+    struct tm *info;
+    info = localtime(&now);
+
+    printf("%04d-%02d-%02dT%02d:%02d:%02d\n", info->tm_year + 1900, info->tm_mon + 1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
+
+    uint16_t registers[3];
+
+    registers[0] = (info->tm_min << 8) | info->tm_sec;
+    registers[1] = (info->tm_mday << 8) | info->tm_hour;
+    registers[2] = ((info->tm_year - 100) << 8) | (info->tm_mon + 1);
+
+    // printf("Registers: %d %d %d\n", registers[0], registers[1], registers[2]);
+
+    set_values(sockfd, "holding", 0x9013, registers, 3);
+}
+
+void print_usage (char *argv0) {
+    // fprintf(stderr,"usage:\t%1$s <hostname> <type> <address> [<value>]\n\t%1$s <hostname> <type> <address> <...values>\n\t%1$s <hostname> time\n", argv0);
+    fprintf(stderr,"usage:\t%s <hostname> <type> <address> [<value>]\n\t%s <hostname> <type> <address> <...values>\n\t%s <hostname> time\n", argv0, argv0, argv0);
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd;
@@ -211,8 +238,8 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
 
-    if (argc < 4) {
-        fprintf(stderr,"usage: client hostname type address [value]\n");
+    if (argc < 3) {
+        print_usage(argv[0]);
         exit(1);
     }
 
@@ -254,6 +281,16 @@ int main(int argc, char *argv[])
     }
 
     freeaddrinfo(servinfo); // all done with this structure
+
+    if (argc == 3) {
+        if (strcmp("time", argv[2]) == 0) {
+            set_time(sockfd);
+            return 0;
+        }
+
+        print_usage(argv[0]);
+        exit(1);
+    }
 
     char *type = argv[2];
     uint16_t address = strtol(argv[3], NULL, 16);
