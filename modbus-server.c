@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #include "send_receive.h"
+#include "serial.h"
 
 #define PORT "502"
 #define SERIAL_DEVICE "/dev/ttyUSB0"

@@ -13,8 +13,11 @@
 
 #define PORT "502"
 
-#include "modbus.h"
 #include "send_receive.h"
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 
