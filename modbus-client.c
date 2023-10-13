@@ -47,7 +47,29 @@ void get_value (int sockfd, char *type, int address) {
         exit(1);
     }
 
-    if (strcmp(type, "coil") == 0) {
+    if (strcmp(type, "auto") == 0) {
+        if (address < 0x2000) {
+            // Read Coil
+            function = 0x01;
+        }
+        else if (address < 0x3000) {
+            // Read Discrete Input
+            function = 0x02;
+        }
+        else if (address < 0x4000) {
+            // Read Input Register
+            function = 0x04;
+        }
+        else if (address >= 0x9000) {
+            // Read Holding Register
+            function = 0x03;
+        }
+        else {
+            fprintf(stderr, "cannot determine correct function\n");
+            exit(1);
+        }
+    }
+    else if (strcmp(type, "coil") == 0) {
         function = 0x01;
     } else if (strcmp(type, "holding") == 0) {
         function = 0x03;
@@ -111,15 +133,41 @@ void set_value (int sockfd, char *type, int address, int value) {
         exit(1);
     }
 
-    if (strcmp(type, "coil") == 0) {
+    if (strcmp(type, "auto") == 0) {
+        if (address < 0x2000) {
+            // Write Single Coil
+            function = 0x05;
+        }
+        else if (address < 0x3000) {
+            // Discrete Input
+            fprintf(stderr, "Cannot write to discrete input\n");
+            exit(1);
+        }
+        else if (address < 0x4000) {
+            // Input Register
+            fprintf(stderr, "Cannot write to input register\n");
+            exit(1);
+        }
+        else if (address >= 0x9000) {
+            // Write Holding Register
+            function = 0x06;
+        }
+        else {
+            fprintf(stderr, "cannot determine correct function\n");
+            exit(1);
+        }
+    }
+    else if (strcmp(type, "coil") == 0) {
         function = 0x05;
 
         if (value != 0xff00 && value != 0x0000) {
             fprintf(stderr, "status must be: on/off\n");
             exit(1);
         }
-    } else if (strcmp(type, "register") == 0 ||
-            strcmp(type, "holding") == 0) {
+    } else if (
+        strcmp(type, "register") == 0 ||
+        strcmp(type, "holding") == 0
+    ) {
         function = 0x06;
 
         if (value > 0xFFFF) {
@@ -231,7 +279,19 @@ void set_time (int sockfd) {
 
 void print_usage (char *argv0) {
     // fprintf(stderr,"usage:\t%1$s <hostname> <type> <address> [<value>]\n\t%1$s <hostname> <type> <address> <...values>\n\t%1$s <hostname> time\n", argv0);
-    fprintf(stderr,"usage:\t%s <hostname> <type> <address> [<value>]\n\t%s <hostname> <type> <address> <...values>\n\t%s <hostname> time\n", argv0, argv0, argv0);
+    // fprintf(stderr,
+    //     "usage:\n"
+    //     "\t%1$s <hostname> <type> 0x<address> [<value>]\n"
+    //     "\t%1$s <hostname> <type> 0x<address> <...values>\n"
+    //     "\t%1$s <hostname> time\n"
+    //     "<type> = coil|input|holding|auto\n",
+    // argv0);
+    fprintf(stderr,
+        "usage:\n"
+        "\t%1$s <hostname> 0x<address> [<value>]\n"
+        "\t%1$s <hostname> 0x<address> <...values>\n"
+        "\t%1$s <hostname> time\n",
+    argv0);
 }
 
 int main(int argc, char *argv[])
@@ -285,22 +345,16 @@ int main(int argc, char *argv[])
 
     freeaddrinfo(servinfo); // all done with this structure
 
-    if (argc == 3) {
-        if (strcmp("time", argv[2]) == 0) {
-            set_time(sockfd);
-            return 0;
-        }
-
-        print_usage(argv[0]);
-        exit(1);
+    if (argc == 3 && strcmp("time", argv[2]) == 0) {
+        set_time(sockfd);
+        return 0;
     }
 
-    char *type = argv[2];
-    uint16_t address = strtol(argv[3], NULL, 16);
+    uint16_t address = strtol(argv[2], NULL, 16);
 
-    if (argc == 4) {
-        get_value(sockfd, type, address);
-    } else if (argc == 5) {
+     if (argc == 3) {
+        get_value(sockfd, "auto", address);
+    } else if (argc == 4) {
         uint16_t value;
 
         if (strcmp(argv[4], "on") == 0) {
@@ -311,13 +365,13 @@ int main(int argc, char *argv[])
             value = atoi(argv[4]);
         }
 
-        set_value(sockfd, type, address, value);
+        set_value(sockfd, "auto", address, value);
     } else {
-        int value_count = argc - 4;
+        int value_count = argc - 3;
         uint16_t *values = malloc(2 * value_count);
 
         for (int i = 0; i < value_count; i++) {
-            char *arg = argv[i + 4];
+            char *arg = argv[i + 3];
             if (strcmp(arg, "on") == 0) {
                 values[i] = 0xFF00;
             } else if (strcmp(arg, "off") == 0) {
@@ -327,7 +381,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        set_values(sockfd, type, address, values, value_count);
+        set_values(sockfd, "auto", address, values, value_count);
     }
 
     close(sockfd);

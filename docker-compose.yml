@@ -1,0 +1,9 @@
+services:
+    server:
+        build: .
+        image: modbus-server
+        ports:
+            - "502:502"
+        devices:
+            - "/dev/ttyUSB0:/dev/ttyUSB0"
+        restart: always
