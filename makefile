@@ -19,7 +19,7 @@ $(BIN_DIR)/modbus-server.o: modbus-server.c
 	$(CC) -c $^ $(CFLAGS) -o $@
 
 $(BIN_DIR)/modbus-client.o: modbus-client.c
-	$(CC) -c $^ $(CCFLAGS) -o $@
+	$(CC) -c $^ $(CFLAGS) -o $@
 
 modbus-server: prep $(BIN_DIR)/modbus-server.o $(BIN_DIR)/send_receive.o $(BIN_DIR)/serial.o
 	$(CC) -o $(BIN_DIR)/modbus-server $(BIN_DIR)/modbus-server.o $(BIN_DIR)/send_receive.o $(BIN_DIR)/serial.o

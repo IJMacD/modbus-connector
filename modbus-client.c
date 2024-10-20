@@ -24,14 +24,16 @@
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
+    if (sa->sa_family == AF_INET)
+    {
+        return &(((struct sockaddr_in *)sa)->sin_addr);
     }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
-void get_value (int sockfd, char *type, int address) {
+void get_value(int sockfd, char *type, int address)
+{
     size_t data_size = 5;
     struct modbus_adu *msg = malloc(MODBUS_HEADER_LEN + data_size);
 
@@ -42,40 +44,54 @@ void get_value (int sockfd, char *type, int address) {
 
     uint8_t function;
 
-    if (address > 0xFFFF) {
+    if (address > 0xFFFF)
+    {
         fprintf(stderr, "address out of range: %d\n", address);
         exit(1);
     }
 
-    if (strcmp(type, "auto") == 0) {
-        if (address < 0x2000) {
+    if (strcmp(type, "auto") == 0)
+    {
+        if (address < 0x2000)
+        {
             // Read Coil
             function = 0x01;
         }
-        else if (address < 0x3000) {
+        else if (address < 0x3000)
+        {
             // Read Discrete Input
             function = 0x02;
         }
-        else if (address < 0x4000) {
+        else if (address < 0x4000)
+        {
             // Read Input Register
             function = 0x04;
         }
-        else if (address >= 0x9000) {
+        else if (address >= 0x9000)
+        {
             // Read Holding Register
             function = 0x03;
         }
-        else {
+        else
+        {
             fprintf(stderr, "cannot determine correct function\n");
             exit(1);
         }
     }
-    else if (strcmp(type, "coil") == 0) {
+    else if (strcmp(type, "coil") == 0)
+    {
         function = 0x01;
-    } else if (strcmp(type, "holding") == 0) {
+    }
+    else if (strcmp(type, "holding") == 0)
+    {
         function = 0x03;
-    } else if (strcmp(type, "input") == 0) {
+    }
+    else if (strcmp(type, "input") == 0)
+    {
         function = 0x04;
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "type must be: coil/input/holding\n");
         exit(1);
     }
@@ -90,7 +106,8 @@ void get_value (int sockfd, char *type, int address) {
 
     send_tcp_message(sockfd, msg);
 
-    if (DEBUG) {
+    if (DEBUG)
+    {
         printf("client: sent message\n");
     }
 
@@ -98,26 +115,36 @@ void get_value (int sockfd, char *type, int address) {
 
     function = msg->data[0];
 
-    if (function & 0x80) {
+    if (function & 0x80)
+    {
         printf("device %d: error %d\n", msg->unit, msg->data[1]);
-    } else if (function == 1) {
+    }
+    else if (function == 1)
+    {
         // uint8_t byte_count = msg->data[1];
         int value = msg->data[2];
         printf("Value: %d\n", value);
-    } else if (function <= 4) {
+    }
+    else if (function <= 4)
+    {
         // uint8_t byte_count = msg->data[1];
         int value = (msg->data[2] << 8) | msg->data[3];
         printf("Value: %d\n", value);
-    } else if (function <= 6) {
+    }
+    else if (function <= 6)
+    {
         int address = (msg->data[1] << 8) | msg->data[2];
         int value = (msg->data[3] << 8) | msg->data[4];
         printf("Address: %02X Value: %d\n", address, value);
-    } else {
+    }
+    else
+    {
         printf("client: other function response %d\n", function);
     }
 }
 
-void set_value (int sockfd, char *type, int address, int value) {
+void set_value(int sockfd, char *type, int address, int value)
+{
     size_t data_size = 5;
     struct modbus_adu *msg = malloc(MODBUS_HEADER_LEN + data_size);
 
@@ -128,53 +155,72 @@ void set_value (int sockfd, char *type, int address, int value) {
 
     uint8_t function;
 
-    if (address > 0xFFFF) {
+    if (address > 0xFFFF)
+    {
         fprintf(stderr, "address out of range: %d\n", address);
         exit(1);
     }
 
-    if (strcmp(type, "auto") == 0) {
-        if (address < 0x2000) {
+    if (strcmp(type, "auto") == 0)
+    {
+        if (address < 0x2000)
+        {
             // Write Single Coil
             function = 0x05;
+
+            // Value must be on or off
+            if (value)
+            {
+                value = 0xFF00;
+            }
         }
-        else if (address < 0x3000) {
+        else if (address < 0x3000)
+        {
             // Discrete Input
             fprintf(stderr, "Cannot write to discrete input\n");
             exit(1);
         }
-        else if (address < 0x4000) {
+        else if (address < 0x4000)
+        {
             // Input Register
             fprintf(stderr, "Cannot write to input register\n");
             exit(1);
         }
-        else if (address >= 0x9000) {
+        else if (address >= 0x9000)
+        {
             // Write Holding Register
             function = 0x06;
         }
-        else {
+        else
+        {
             fprintf(stderr, "cannot determine correct function\n");
             exit(1);
         }
     }
-    else if (strcmp(type, "coil") == 0) {
+    else if (strcmp(type, "coil") == 0)
+    {
         function = 0x05;
 
-        if (value != 0xff00 && value != 0x0000) {
+        if (value != 0xff00 && value != 0x0000)
+        {
             fprintf(stderr, "status must be: on/off\n");
             exit(1);
         }
-    } else if (
+    }
+    else if (
         strcmp(type, "register") == 0 ||
-        strcmp(type, "holding") == 0
-    ) {
+        strcmp(type, "holding") == 0)
+    {
         function = 0x06;
 
-        if (value > 0xFFFF) {
+        if (value > 0xFFFF)
+        {
             fprintf(stderr, "value out of range: %d\n", value);
             exit(1);
         }
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "type must be: coil/register\n");
         exit(1);
     }
@@ -187,20 +233,25 @@ void set_value (int sockfd, char *type, int address, int value) {
 
     send_tcp_message(sockfd, msg);
 
-    if (DEBUG) {
+    if (DEBUG)
+    {
         printf("client: sent message\n");
     }
 
     read_tcp_message(sockfd, &msg);
 
-    if (msg->data[0] & 0x80) {
+    if (msg->data[0] & 0x80)
+    {
         printf("error setting value\n");
-    } else {
+    }
+    else
+    {
         printf("OK\n");
     }
 }
 
-void set_values (int sockfd, char *type, int start_address, uint16_t *values, int value_count) {
+void set_values(int sockfd, char *type, int start_address, uint16_t *values, int value_count)
+{
     size_t data_size = 6 + value_count * 2;
     struct modbus_adu *msg = malloc(MODBUS_HEADER_LEN + data_size - 1);
 
@@ -211,25 +262,31 @@ void set_values (int sockfd, char *type, int start_address, uint16_t *values, in
 
     uint8_t function;
 
-    if (start_address > 0xFFFF) {
+    if (start_address > 0xFFFF)
+    {
         fprintf(stderr, "address out of range: %d\n", start_address);
         exit(1);
     }
 
-    if (strcmp(type, "coil") == 0) {
+    if (strcmp(type, "coil") == 0)
+    {
         function = 0x0F;
 
         fprintf(stderr, "not implemented: write multiple coils\n");
         exit(1);
-
-    } else if (strcmp(type, "register") == 0 || strcmp(type, "holding") == 0) {
+    }
+    else if (strcmp(type, "register") == 0 || strcmp(type, "holding") == 0)
+    {
         function = 0x10;
 
-        for (int i = 0; i < value_count; i++) {
-            msg->data[6 + (i * 2)]      = (values[i] >> 8)  & 0xff;
-            msg->data[6 + (i * 2) + 1]  =  values[i]        & 0xff;
+        for (int i = 0; i < value_count; i++)
+        {
+            msg->data[6 + (i * 2)] = (values[i] >> 8) & 0xff;
+            msg->data[6 + (i * 2) + 1] = values[i] & 0xff;
         }
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "type must be: coil/register\n");
         exit(1);
     }
@@ -243,20 +300,25 @@ void set_values (int sockfd, char *type, int start_address, uint16_t *values, in
 
     send_tcp_message(sockfd, msg);
 
-    if (DEBUG) {
+    if (DEBUG)
+    {
         printf("client: sent message\n");
     }
 
     read_tcp_message(sockfd, &msg);
 
-    if (msg->data[0] & 0x80) {
+    if (msg->data[0] & 0x80)
+    {
         printf("error setting value\n");
-    } else {
+    }
+    else
+    {
         printf("OK\n");
     }
 }
 
-void set_time (int sockfd) {
+void set_time(int sockfd)
+{
     printf("Setting time to ");
 
     time_t now;
@@ -277,7 +339,8 @@ void set_time (int sockfd) {
     set_values(sockfd, "holding", 0x9013, registers, 3);
 }
 
-void print_usage (char *argv0) {
+void print_usage(char *argv0)
+{
     // fprintf(stderr,"usage:\t%1$s <hostname> <type> <address> [<value>]\n\t%1$s <hostname> <type> <address> <...values>\n\t%1$s <hostname> time\n", argv0);
     // fprintf(stderr,
     //     "usage:\n"
@@ -287,11 +350,11 @@ void print_usage (char *argv0) {
     //     "<type> = coil|input|holding|auto\n",
     // argv0);
     fprintf(stderr,
-        "usage:\n"
-        "\t%1$s <hostname> 0x<address> [<value>]\n"
-        "\t%1$s <hostname> 0x<address> <...values>\n"
-        "\t%1$s <hostname> time\n",
-    argv0);
+            "usage:\n"
+            "\t%1$s <hostname> 0x<address> [<value>]\n"
+            "\t%1$s <hostname> 0x<address> <...values>\n"
+            "\t%1$s <hostname> time\n",
+            argv0);
 }
 
 int main(int argc, char *argv[])
@@ -301,7 +364,8 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
 
-    if (argc < 3) {
+    if (argc < 3)
+    {
         print_usage(argv[0]);
         exit(1);
     }
@@ -310,20 +374,26 @@ int main(int argc, char *argv[])
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    char *hostname = argv[1];
+
+    if ((rv = getaddrinfo(hostname, PORT, &hints, &servinfo)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
 
     // loop through all the results and connect to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
+    for (p = servinfo; p != NULL; p = p->ai_next)
+    {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
+                             p->ai_protocol)) == -1)
+        {
             perror("client: socket");
             continue;
         }
 
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+        {
             close(sockfd);
             perror("client: connect");
             continue;
@@ -332,51 +402,79 @@ int main(int argc, char *argv[])
         break;
     }
 
-    if (p == NULL) {
+    if (p == NULL)
+    {
         fprintf(stderr, "client: failed to connect\n");
         return 2;
     }
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
-            s, sizeof s);
-    if (DEBUG) {
+              s, sizeof s);
+    if (DEBUG)
+    {
         printf("client: connecting to %s\n", s);
     }
 
     freeaddrinfo(servinfo); // all done with this structure
 
-    if (argc == 3 && strcmp("time", argv[2]) == 0) {
+    // e.g. modbus-client <hostname> time
+    if (argc == 3 && strcmp("time", argv[2]) == 0)
+    {
         set_time(sockfd);
         return 0;
     }
 
+    // Assumes hexidecimal register address. Supports optional '0x' prefix
+    // e.g.
+    //  modbus-client <hostname> 3100
+    //  modbus-client <hostname> 0x3100
     uint16_t address = strtol(argv[2], NULL, 16);
 
-     if (argc == 3) {
+    // Read value
+    if (argc == 3)
+    {
         get_value(sockfd, "auto", address);
-    } else if (argc == 4) {
+    }
+    // Write value
+    else if (argc == 4)
+    {
         uint16_t value;
 
-        if (strcmp(argv[4], "on") == 0) {
+        // shortcut for coils on/off
+        if (strcmp(argv[3], "on") == 0)
+        {
             value = 0xFF00;
-        } else if (strcmp(argv[4], "off") == 0) {
+        }
+        else if (strcmp(argv[3], "off") == 0)
+        {
             value = 0x0000;
-        } else {
-            value = atoi(argv[4]);
+        }
+        else
+        {
+            value = atoi(argv[3]);
         }
 
         set_value(sockfd, "auto", address, value);
-    } else {
+    }
+    // Set multiple values
+    else
+    {
         int value_count = argc - 3;
         uint16_t *values = malloc(2 * value_count);
 
-        for (int i = 0; i < value_count; i++) {
+        for (int i = 0; i < value_count; i++)
+        {
             char *arg = argv[i + 3];
-            if (strcmp(arg, "on") == 0) {
+            if (strcmp(arg, "on") == 0)
+            {
                 values[i] = 0xFF00;
-            } else if (strcmp(arg, "off") == 0) {
+            }
+            else if (strcmp(arg, "off") == 0)
+            {
                 values[i] = 0x0000;
-            } else {
+            }
+            else
+            {
                 values[i] = atoi(arg);
             }
         }
